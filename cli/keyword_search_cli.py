@@ -4,6 +4,39 @@ import argparse
 import json
 import string
 from nltk.stem import PorterStemmer
+from os import makedirs
+import pickle
+
+
+class InvertedIndex:
+    def __init__(self):
+        self.index = {}
+        self.docmap = {}
+
+    def __add_document(self, doc_id, text):
+        tokens = to_kw_tokens(text)
+        for token in tokens:
+            if token not in self.index:
+                self.index[token] = set()
+            self.index[token].add(doc_id)
+            self.docmap[doc_id] = text
+
+    def get_documents(self, term):
+        term = term.lower()
+        docs = list(self.index.get(term, set()))
+        docs.sort()
+        return docs
+
+    def build(self, movies):
+        for movie in movies:
+            self.__add_document(
+                movie["id"], movie["title"] + " " + movie["description"]
+            )
+
+    def save(self, dir="cache"):
+        makedirs(dir, exist_ok=True)
+        pickle.dump(self.index, open(f"{dir}/index.pkl", "wb"))
+        pickle.dump(self.docmap, open(f"{dir}/docmap.pkl", "wb"))
 
 
 stemmer = PorterStemmer()
@@ -15,6 +48,8 @@ def main() -> None:
 
     search_parser = subparsers.add_parser("search", help="Search movies using BM25")
     search_parser.add_argument("query", type=str, help="Search query")
+
+    build_parser = subparsers.add_parser("build", help="Build inverted index")
 
     args = parser.parse_args()
 
@@ -36,8 +71,19 @@ def main() -> None:
             res.sort(key=lambda x: x["id"])
             res = res[:5]
             while i < len(res):
-                print(f"{i+1}. {res[i]['title']}")
+                print(f"{i + 1}. {res[i]['title']}")
                 i += 1
+            pass
+        case "build":
+            f = open("data/movies.json")
+            movies = json.load(f)["movies"]
+            f.close()
+
+            idx = InvertedIndex()
+            idx.build(movies)
+            idx.save()
+            docs = idx.get_documents("merida")
+            print(f"First document for token 'merida' = {docs[0]}")
             pass
         case _:
             parser.print_help()
