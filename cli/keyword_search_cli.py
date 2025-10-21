@@ -18,12 +18,15 @@ def main() -> None:
         case "search":
             print(f"Searching for: {args.query}")
             f = open("data/movies.json")
-            dic = json.load(f)
-            res = []
-            for movie in dic["movies"]:
-                if kw_match(movie["title"], args.query):
-                    res.append(movie)
+            movies = json.load(f)["movies"]
             f.close()
+            f = open("data/stopwords.txt")
+            stopwords = f.read().splitlines()
+            f.close()
+            res = []
+            for movie in movies:
+                if kw_match(movie["title"], args.query, stopwords):
+                    res.append(movie)
 
             i = 0
             res.sort(key=lambda x: x["id"])
@@ -36,9 +39,9 @@ def main() -> None:
             parser.print_help()
 
 
-def kw_match(s, q):
-    s = to_kw_tokens(s)
-    q = to_kw_tokens(q)
+def kw_match(s, q, stopwords=[]):
+    s = to_kw_tokens(s, stopwords)
+    q = to_kw_tokens(q, stopwords)
     for tok_q in q:
         for tok_s in s:
             if tok_q in tok_s:
@@ -46,11 +49,11 @@ def kw_match(s, q):
     return False
 
 
-def to_kw_tokens(s):
+def to_kw_tokens(s, stopwords=[]):
     kw_tokens = []
     for tok in s.split(" "):
         tok = to_kw_comparable(tok)
-        if len(tok) != 0:
+        if len(tok) != 0 and tok not in stopwords:
             kw_tokens.append(tok)
     return kw_tokens
 
