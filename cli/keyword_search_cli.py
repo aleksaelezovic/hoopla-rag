@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import string
 
 
 def main() -> None:
@@ -20,7 +21,7 @@ def main() -> None:
             dic = json.load(f)
             res = []
             for movie in dic["movies"]:
-                if args.query in movie["title"]:
+                if kw_match(movie["title"], args.query):
                     res.append(movie)
             f.close()
 
@@ -33,6 +34,31 @@ def main() -> None:
             pass
         case _:
             parser.print_help()
+
+
+def kw_match(s, q):
+    s = to_kw_tokens(s)
+    q = to_kw_tokens(q)
+    for tok_q in q:
+        for tok_s in s:
+            if tok_q in tok_s:
+                return True
+    return False
+
+
+def to_kw_tokens(s):
+    kw_tokens = []
+    for tok in s.split(" "):
+        tok = to_kw_comparable(tok)
+        if len(tok) != 0:
+            kw_tokens.append(tok)
+    return kw_tokens
+
+
+def to_kw_comparable(s):
+    s = s.lower()
+    t = s.maketrans("", "", string.punctuation)
+    return s.translate(t)
 
 
 if __name__ == "__main__":
