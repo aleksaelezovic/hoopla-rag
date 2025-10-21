@@ -1,7 +1,7 @@
 import os
 import pickle
 import string
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from nltk.stem import PorterStemmer
 
@@ -10,10 +10,14 @@ from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, load_movies, load_sto
 
 class InvertedIndex:
     def __init__(self) -> None:
-        self.index = defaultdict(set)
+        self.index: dict[str, set[int]] = defaultdict(set)
         self.docmap: dict[int, dict] = {}
-        self.index_path = os.path.join(CACHE_DIR, "index.pkl")
-        self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
+        self.term_frequencies: dict[int, Counter[str]] = {}
+        self.index_path: str = os.path.join(CACHE_DIR, "index.pkl")
+        self.docmap_path: str = os.path.join(CACHE_DIR, "docmap.pkl")
+        self.term_frequencies_path: str = os.path.join(
+            CACHE_DIR, "term_frequencies.pkl"
+        )
 
     def build(self) -> None:
         movies = load_movies()
@@ -29,21 +33,39 @@ class InvertedIndex:
             pickle.dump(self.index, f)
         with open(self.docmap_path, "wb") as f:
             pickle.dump(self.docmap, f)
+        with open(self.term_frequencies_path, "wb") as f:
+            pickle.dump(self.term_frequencies, f)
 
     def load(self) -> None:
         with open(self.index_path, "rb") as f:
             self.index = pickle.load(f)
         with open(self.docmap_path, "rb") as f:
             self.docmap = pickle.load(f)
+        with open(self.term_frequencies_path, "rb") as f:
+            self.term_frequencies = pickle.load(f)
 
     def get_documents(self, term: str) -> list[int]:
         doc_ids = self.index.get(term, set())
         return sorted(list(doc_ids))
 
     def __add_document(self, doc_id: int, text: str) -> None:
+        if doc_id not in self.term_frequencies:
+            self.term_frequencies[doc_id] = Counter()
         tokens = tokenize_text(text)
         for token in set(tokens):
             self.index[token].add(doc_id)
+            self.term_frequencies[doc_id][token] += 1
+
+    def get_tf(self, doc_id: int, term: str) -> int:
+        tokens = tokenize_text(term)
+        if len(tokens) != 1:
+            raise Exception("Invalid term - expected a single token")
+        if doc_id not in self.term_frequencies:
+            raise Exception("Document not found")
+        token = tokens[0]
+        if token not in self.term_frequencies[doc_id]:
+            return 0
+        return self.term_frequencies[doc_id][token]
 
 
 def build_command() -> None:
@@ -65,6 +87,16 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
                 break
         return list(map(lambda doc_id: idx.docmap[doc_id], docs_ids[:limit]))
 
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
+def tf_command(doc_id: int, term: str) -> int:
+    try:
+        idx = InvertedIndex()
+        idx.load()
+        return idx.get_tf(doc_id, term)
     except Exception as e:
         print(f"Error: {e}")
         exit(1)
