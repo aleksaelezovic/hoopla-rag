@@ -3,6 +3,7 @@ import pickle
 import string
 from collections import Counter, defaultdict
 
+from nltk.corpus.reader import math
 from nltk.stem import PorterStemmer
 
 from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
@@ -52,8 +53,10 @@ class InvertedIndex:
         if doc_id not in self.term_frequencies:
             self.term_frequencies[doc_id] = Counter()
         tokens = tokenize_text(text)
-        for token in set(tokens):
+        for token in tokens:
             self.index[token].add(doc_id)
+            if token not in self.term_frequencies[doc_id]:
+                self.term_frequencies[doc_id][token] = 0
             self.term_frequencies[doc_id][token] += 1
 
     def get_tf(self, doc_id: int, term: str) -> int:
@@ -97,6 +100,22 @@ def tf_command(doc_id: int, term: str) -> int:
         idx = InvertedIndex()
         idx.load()
         return idx.get_tf(doc_id, term)
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
+def idf_command(term: str) -> float:
+    try:
+        idx = InvertedIndex()
+        idx.load()
+        doc_count = len(idx.docmap)
+        term_doc_count = 0
+        for doc_id in idx.term_frequencies:
+            c = idx.get_tf(doc_id, term)
+            if c > 0:
+                term_doc_count += 1
+        return math.log((doc_count + 1) / (term_doc_count + 1))
     except Exception as e:
         print(f"Error: {e}")
         exit(1)
