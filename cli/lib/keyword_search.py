@@ -70,6 +70,14 @@ class InvertedIndex:
             return 0
         return self.term_frequencies[doc_id][token]
 
+    def get_idf(self, term: str) -> float:
+        doc_count = len(self.docmap)
+        term_doc_count = 0
+        for doc_id in self.term_frequencies:
+            if self.get_tf(doc_id, term) > 0:
+                term_doc_count += 1
+        return math.log((doc_count + 1) / (term_doc_count + 1))
+
 
 def build_command() -> None:
     idx = InvertedIndex()
@@ -109,13 +117,19 @@ def idf_command(term: str) -> float:
     try:
         idx = InvertedIndex()
         idx.load()
-        doc_count = len(idx.docmap)
-        term_doc_count = 0
-        for doc_id in idx.term_frequencies:
-            c = idx.get_tf(doc_id, term)
-            if c > 0:
-                term_doc_count += 1
-        return math.log((doc_count + 1) / (term_doc_count + 1))
+        return idx.get_idf(term)
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
+def tfidf_command(doc_id: int, term: str) -> float:
+    try:
+        idx = InvertedIndex()
+        idx.load()
+        tf = idx.get_tf(doc_id, term)
+        idf = idx.get_idf(term)
+        return tf * idf
     except Exception as e:
         print(f"Error: {e}")
         exit(1)
