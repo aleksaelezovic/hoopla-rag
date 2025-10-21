@@ -3,6 +3,10 @@
 import argparse
 import json
 import string
+from nltk.stem import PorterStemmer
+
+
+stemmer = PorterStemmer()
 
 
 def main() -> None:
@@ -54,7 +58,7 @@ def to_kw_tokens(s, stopwords=[]):
     for tok in s.split(" "):
         tok = to_kw_comparable(tok)
         if len(tok) != 0 and tok not in stopwords:
-            kw_tokens.append(tok)
+            kw_tokens.append(stemmer.stem(tok))
     return kw_tokens
 
 
