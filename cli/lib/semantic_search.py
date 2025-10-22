@@ -49,6 +49,14 @@ def embed_text(text: str):
     print(f"Dimensions: {embedding.shape[0]}")
 
 
+def embed_query_text(query: str):
+    ss = SemanticSearch()
+    embedding = ss.generate_embedding(query)
+    print(f"Query: {query}")
+    print(f"First 5 dimensions: {embedding[:5]}")
+    print(f"Shape: {embedding.shape}")
+
+
 def verify_embeddings():
     ss = SemanticSearch()
     documents = load_movies()
