@@ -6,7 +6,13 @@ from collections import Counter, defaultdict
 from nltk.corpus.reader import math
 from nltk.stem import PorterStemmer
 
-from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, load_movies, load_stopwords
+from .search_utils import (
+    CACHE_DIR,
+    DEFAULT_SEARCH_LIMIT,
+    load_movies,
+    load_stopwords,
+    BM25_K1,
+)
 
 
 class InvertedIndex:
@@ -86,6 +92,10 @@ class InvertedIndex:
                 term_doc_count += 1
         return math.log((doc_count - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
 
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float = BM25_K1) -> float:
+        tf = self.get_tf(doc_id, term)
+        return ((k1 + 1) * tf) / (tf + k1)
+
 
 def build_command() -> None:
     idx = InvertedIndex()
@@ -136,6 +146,28 @@ def bm25_idf_command(term: str) -> float:
         idx = InvertedIndex()
         idx.load()
         return idx.get_bm25_idf(term)
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
+def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1) -> float:
+    try:
+        idx = InvertedIndex()
+        idx.load()
+        return idx.get_bm25_tf(doc_id, term, k1)
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
+def bm25_command(doc_id: int, term: str) -> float:
+    try:
+        idx = InvertedIndex()
+        idx.load()
+        tf = idx.get_bm25_tf(doc_id, term)
+        idf = idx.get_bm25_idf(term)
+        return tf * idf
     except Exception as e:
         print(f"Error: {e}")
         exit(1)
