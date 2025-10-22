@@ -78,6 +78,14 @@ class InvertedIndex:
                 term_doc_count += 1
         return math.log((doc_count + 1) / (term_doc_count + 1))
 
+    def get_bm25_idf(self, term: str) -> float:
+        doc_count = len(self.docmap)
+        term_doc_count = 0
+        for doc_id in self.term_frequencies:
+            if self.get_tf(doc_id, term) > 0:
+                term_doc_count += 1
+        return math.log((doc_count - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
+
 
 def build_command() -> None:
     idx = InvertedIndex()
@@ -118,6 +126,16 @@ def idf_command(term: str) -> float:
         idx = InvertedIndex()
         idx.load()
         return idx.get_idf(term)
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
+def bm25_idf_command(term: str) -> float:
+    try:
+        idx = InvertedIndex()
+        idx.load()
+        return idx.get_bm25_idf(term)
     except Exception as e:
         print(f"Error: {e}")
         exit(1)
