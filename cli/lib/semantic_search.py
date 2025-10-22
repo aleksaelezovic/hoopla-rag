@@ -1,9 +1,11 @@
 import os
 import numpy as np
+from numpy.typing import ArrayLike
+from scipy.stats import cosine
 from sentence_transformers import SentenceTransformer
 
-from .search_utils import CACHE_DIR, load_movies
-from .types import Movie
+from .search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, load_movies
+from .types import Movie, SearchResult
 
 
 class SemanticSearch:
@@ -40,6 +42,37 @@ class SemanticSearch:
             raise ValueError("Text cannot be empty")
         return self.model.encode([text])[0]
 
+    def search(self, query: str, limit: int) -> list[SearchResult]:
+        if self.embeddings is None:
+            raise ValueError(
+                "No embeddings loaded. Call `load_or_create_embeddings` first."
+            )
+        query_embedding = self.generate_embedding(query)
+        results = map(
+            lambda x: (cosine_similarity(query_embedding, x[1]), self.documents[x[0]]),
+            enumerate(self.embeddings, 0),
+        )
+        sorted_results = sorted(results, key=lambda x: x[0], reverse=True)
+        return list(
+            map(
+                lambda x: {
+                    "score": x[0],
+                    "title": x[1]["title"],
+                    "description": x[1]["description"],
+                },
+                sorted_results[:limit],
+            )
+        )
+
+
+def search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    ss = SemanticSearch()
+    _ = ss.load_or_create_embeddings(load_movies())
+    for idx, result in enumerate(ss.search(query, limit), 1):
+        print(f"{idx}. {result['title']} (score: {result['score']:.4f})")
+        print(f"   {result['description'][:100]}...")
+        print()
+
 
 def embed_text(text: str):
     ss = SemanticSearch()
@@ -71,3 +104,14 @@ def verify_model():
     ss = SemanticSearch()
     print(f"Model loaded: {ss.model}")
     print(f"Max sequence length: {ss.model.max_seq_length}")
+
+
+def cosine_similarity(vec1: ArrayLike, vec2: ArrayLike):
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+
+    return dot_product / (norm1 * norm2)

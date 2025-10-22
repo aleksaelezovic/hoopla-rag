@@ -9,3 +9,9 @@ class Movie(TypedDict):
     id: int
     title: str
     description: str
+
+
+class SearchResult(TypedDict):
+    score: float
+    title: str
+    description: str
