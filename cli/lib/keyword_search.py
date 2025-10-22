@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from nltk.corpus.reader import math
 from nltk.stem import PorterStemmer
 
+from .types import Movie
 from .search_utils import (
     CACHE_DIR,
     DEFAULT_SEARCH_LIMIT,
@@ -19,7 +20,7 @@ from .search_utils import (
 class InvertedIndex:
     def __init__(self) -> None:
         self.index: dict[str, set[int]] = defaultdict(set)
-        self.docmap: dict[int, dict] = {}
+        self.docmap: dict[int, Movie] = {}
         self.term_frequencies: dict[int, Counter[str]] = {}
         self.index_path: str = os.path.join(CACHE_DIR, "index.pkl")
         self.docmap_path: str = os.path.join(CACHE_DIR, "docmap.pkl")
@@ -97,11 +98,12 @@ class InvertedIndex:
         return math.log((doc_count + 1) / (term_doc_count + 1))
 
     def get_bm25_idf(self, term: str) -> float:
+        tokens = tokenize_text(term)
+        if len(tokens) != 1:
+            raise ValueError("term must be a single token")
+        token = tokens[0]
         doc_count = len(self.docmap)
-        term_doc_count = 0
-        for doc_id in self.term_frequencies:
-            if self.get_tf(doc_id, term) > 0:
-                term_doc_count += 1
+        term_doc_count = len(self.index[token])
         return math.log((doc_count - term_doc_count + 0.5) / (term_doc_count + 0.5) + 1)
 
     def get_bm25_tf(
@@ -112,6 +114,20 @@ class InvertedIndex:
         len_norm = 1 - b + b * (self.doc_lengths[doc_id] / avg_doc_length)
         return ((k1 + 1) * tf) / (tf + k1 * len_norm)
 
+    def bm25(self, doc_id: int, term: str) -> float:
+        idf = self.get_bm25_idf(term)
+        tf = self.get_bm25_tf(doc_id, term)
+        return idf * tf
+
+    def bm25_search(self, query: str, limit: int):
+        tokens = tokenize_text(query)
+        scores: dict[int, float] = {}
+        for doc_id in self.docmap:
+            print(f"Processing document {doc_id}")
+            scores[doc_id] = sum(map(lambda t: self.bm25(doc_id, t), tokens))
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        return [(self.docmap[doc_id], score) for doc_id, score in sorted_scores[:limit]]
+
 
 def build_command() -> None:
     idx = InvertedIndex()
@@ -119,12 +135,12 @@ def build_command() -> None:
     idx.save()
 
 
-def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
     try:
         idx = InvertedIndex()
         idx.load()
         query_tokens = tokenize_text(query)
-        docs_ids = []
+        docs_ids: list[int] = []
         limit = 5
         for token in query_tokens:
             docs_ids.extend(idx.get_documents(token))
@@ -191,6 +207,16 @@ def bm25_command(doc_id: int, term: str) -> float:
         exit(1)
 
 
+def bm25_search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    try:
+        idx = InvertedIndex()
+        idx.load()
+        return idx.bm25_search(query, limit)
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
+
+
 def tfidf_command(doc_id: int, term: str) -> float:
     try:
         idx = InvertedIndex()
@@ -220,17 +246,17 @@ def preprocess_text(text: str) -> str:
 def tokenize_text(text: str) -> list[str]:
     text = preprocess_text(text)
     tokens = text.split()
-    valid_tokens = []
+    valid_tokens: list[str] = []
     for token in tokens:
         if token:
             valid_tokens.append(token)
     stop_words = load_stopwords()
-    filtered_words = []
+    filtered_words: list[str] = []
     for word in valid_tokens:
         if word not in stop_words:
             filtered_words.append(word)
     stemmer = PorterStemmer()
-    stemmed_words = []
+    stemmed_words: list[str] = []
     for word in filtered_words:
         stemmed_words.append(stemmer.stem(word))
     return stemmed_words
