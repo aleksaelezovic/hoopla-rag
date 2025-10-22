@@ -123,7 +123,6 @@ class InvertedIndex:
         tokens = tokenize_text(query)
         scores: dict[int, float] = {}
         for doc_id in self.docmap:
-            print(f"Processing document {doc_id}")
             scores[doc_id] = sum(map(lambda t: self.bm25(doc_id, t), tokens))
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         return [(self.docmap[doc_id], score) for doc_id, score in sorted_scores[:limit]]
