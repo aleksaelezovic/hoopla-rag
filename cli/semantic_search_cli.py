@@ -43,6 +43,12 @@ def main():
         default=200,
         help="Size of each chunk",
     )
+    _ = chunk_parser.add_argument(
+        "--overlap",
+        type=int,
+        default=0,
+        help="Overlap between chunks",
+    )
 
     args = parser.parse_args()
 
@@ -59,7 +65,7 @@ def main():
             search(args.query, args.limit)
         case "chunk":
             print(f"Chunking {len(args.text)} characters")
-            chunks = chunk(args.text, args.chunk_size)
+            chunks = chunk(args.text, args.chunk_size, args.overlap)
             for i, ch in enumerate(chunks, 1):
                 print(f"{i}. {' '.join(ch)}")
         case _:

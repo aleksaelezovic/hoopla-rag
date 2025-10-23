@@ -65,13 +65,15 @@ class SemanticSearch:
         )
 
 
-def chunk(text: str, chunk_size: int = 200):
+def chunk(text: str, chunk_size: int = 200, overlap: int = 0):
     chunks: list[list[str]] = []
     for word in text.split(" "):
         if len(chunks) == 0:
             chunks.append([])
         if len(chunks[-1]) == chunk_size:
             chunks.append([])
+            if overlap > 0:
+                chunks[-1].extend(chunks[-2][-overlap:])
         chunks[-1].append(word)
     return chunks
 
