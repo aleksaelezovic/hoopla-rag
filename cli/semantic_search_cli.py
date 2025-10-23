@@ -6,6 +6,7 @@ from lib.search_utils import DEFAULT_SEARCH_LIMIT
 from lib.semantic_search import (
     embed_text,
     search,
+    search_chunked,
     semantic_chunk,
     verify_embeddings,
     verify_model,
@@ -71,6 +72,17 @@ def main():
 
     _ = subparsers.add_parser("embed_chunks", help="Embed chunks")
 
+    search_chunked_parser = subparsers.add_parser(
+        "search_chunked", help="Search using chunks"
+    )
+    _ = search_chunked_parser.add_argument("query", help="Query to search")
+    _ = search_chunked_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Max number of results",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -96,6 +108,8 @@ def main():
                 print(f"{i}. {' '.join(ch)}")
         case "embed_chunks":
             embed_chunks()
+        case "search_chunked":
+            search_chunked(args.query, args.limit)
         case _:
             parser.print_help()
 
