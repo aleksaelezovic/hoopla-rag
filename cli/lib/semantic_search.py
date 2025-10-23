@@ -65,6 +65,17 @@ class SemanticSearch:
         )
 
 
+def chunk(text: str, chunk_size: int = 200):
+    chunks: list[list[str]] = []
+    for word in text.split(" "):
+        if len(chunks) == 0:
+            chunks.append([])
+        if len(chunks[-1]) == chunk_size:
+            chunks.append([])
+        chunks[-1].append(word)
+    return chunks
+
+
 def search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
     ss = SemanticSearch()
     _ = ss.load_or_create_embeddings(load_movies())
