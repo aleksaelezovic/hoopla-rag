@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.stats import cosine
@@ -63,6 +64,19 @@ class SemanticSearch:
                 sorted_results[:limit],
             )
         )
+
+
+def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0):
+    chunks: list[list[str]] = []
+    for sentence in re.split(r"(?<=[.!?])\s+", text):
+        if len(chunks) == 0:
+            chunks.append([])
+        if len(chunks[-1]) == max_chunk_size:
+            chunks.append([])
+            if overlap > 0:
+                chunks[-1].extend(chunks[-2][-overlap:])
+        chunks[-1].append(sentence)
+    return chunks
 
 
 def chunk(text: str, chunk_size: int = 200, overlap: int = 0):

@@ -6,6 +6,7 @@ from lib.search_utils import DEFAULT_SEARCH_LIMIT
 from lib.semantic_search import (
     embed_text,
     search,
+    semantic_chunk,
     verify_embeddings,
     verify_model,
     chunk,
@@ -50,6 +51,23 @@ def main():
         help="Overlap between chunks",
     )
 
+    semantic_chunk_parser = subparsers.add_parser(
+        "semantic_chunk", help="Chunk text, semantically"
+    )
+    _ = semantic_chunk_parser.add_argument("text", help="Text to chunk")
+    _ = semantic_chunk_parser.add_argument(
+        "--max-chunk-size",
+        type=int,
+        default=4,
+        help="Max size of each chunk",
+    )
+    _ = semantic_chunk_parser.add_argument(
+        "--overlap",
+        type=int,
+        default=0,
+        help="Overlap between chunks",
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -66,6 +84,11 @@ def main():
         case "chunk":
             print(f"Chunking {len(args.text)} characters")
             chunks = chunk(args.text, args.chunk_size, args.overlap)
+            for i, ch in enumerate(chunks, 1):
+                print(f"{i}. {' '.join(ch)}")
+        case "semantic_chunk":
+            print(f"Semantically chunking {len(args.text)} characters")
+            chunks = semantic_chunk(args.text, args.max_chunk_size, args.overlap)
             for i, ch in enumerate(chunks, 1):
                 print(f"{i}. {' '.join(ch)}")
         case _:
