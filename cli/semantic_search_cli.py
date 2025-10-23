@@ -10,6 +10,7 @@ from lib.semantic_search import (
     verify_embeddings,
     verify_model,
     chunk,
+    embed_chunks,
 )
 
 
@@ -68,6 +69,8 @@ def main():
         help="Overlap between chunks",
     )
 
+    _ = subparsers.add_parser("embed_chunks", help="Embed chunks")
+
     args = parser.parse_args()
 
     match args.command:
@@ -91,6 +94,8 @@ def main():
             chunks = semantic_chunk(args.text, args.max_chunk_size, args.overlap)
             for i, ch in enumerate(chunks, 1):
                 print(f"{i}. {' '.join(ch)}")
+        case "embed_chunks":
+            embed_chunks()
         case _:
             parser.print_help()
 
