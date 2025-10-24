@@ -1,11 +1,15 @@
 import os
-
+from dotenv import load_dotenv
+from google import genai
 from numpy import s_
 from transformers import InfNanRemoveLogitsProcessor
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
 from .types import HybridSearchResult
+
+
+load_dotenv()
 
 
 class HybridSearch:
@@ -110,3 +114,19 @@ def normalize_scores(scores: list[float]) -> list[float]:
     if s_min == s_max:
         return [1.0] * len(scores)
     return [(score - s_min) / (s_max - s_min) for score in scores]
+
+
+def enhance_query_spell(query: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    client = genai.Client(api_key=api_key)
+    prompt = f"""Fix any spelling errors in this movie search query.
+
+    Only correct obvious typos. Don't change correctly spelled words.
+
+    Query: "{query}"
+
+    If no errors, return the original query.
+    Corrected:"""
+    return client.models.generate_content(
+        model="gemini-2.0-flash-001", contents=prompt
+    ).text
