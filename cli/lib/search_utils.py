@@ -1,13 +1,14 @@
 import json
 import os
 
-from .types import Movies
+from .types import GoldenDataset, Movies
 
 DEFAULT_SEARCH_LIMIT = 5
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
+GOLDEN_DATASET_PATH = os.path.join(PROJECT_ROOT, "data", "golden_dataset.json")
 
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 
@@ -25,3 +26,10 @@ def load_movies():
 def load_stopwords() -> list[str]:
     with open(STOPWORDS_PATH, "r") as f:
         return f.read().splitlines()
+
+
+def load_golden_dataset():
+    data: GoldenDataset = {"test_cases": []}
+    with open(GOLDEN_DATASET_PATH, "r") as f:
+        data = json.load(f)
+    return data["test_cases"]

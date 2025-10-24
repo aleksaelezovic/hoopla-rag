@@ -26,3 +26,12 @@ class HybridSearchResult(TypedDict):
     id: int
     title: str
     description: str
+
+
+class GoldenDataset(TypedDict):
+    test_cases: list[GoldenDatasetTestCase]
+
+
+class GoldenDatasetTestCase(TypedDict):
+    query: str
+    relevant_docs: list[str]
