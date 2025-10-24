@@ -166,14 +166,25 @@ def embed_chunks():
 
 
 def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 0):
+    text = text.strip()
+    if len(text) == 0:
+        return []
     chunks: list[list[str]] = []
-    for sentence in re.split(r"(?<=[.!?])\s+", text):
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    if len(sentences) == 0:
+        return []
+    if len(sentences) == 1 and not sentences[0].endswith((".", "?", "!")):
+        return [[text]]
+    for sentence in sentences:
         if len(chunks) == 0:
             chunks.append([])
         if len(chunks[-1]) == max_chunk_size:
             chunks.append([])
             if overlap > 0:
                 chunks[-1].extend(chunks[-2][-overlap:])
+        sentence = sentence.strip()
+        if len(sentence) == 0:
+            continue
         chunks[-1].append(sentence)
     return chunks
 
