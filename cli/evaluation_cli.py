@@ -28,10 +28,12 @@ def main():
             if expected_title in res_titles:
                 rel_titles.append(expected_title)
         precision = len(rel_titles) / len(res_titles)
+        recall = len(rel_titles) / len(test_case["relevant_docs"])
         print(f"- Query: {test_case['query']}")
         print(f"  Precision@{limit}: {precision:.4f}")
-        print(f"  Retrieved: {' '.join(res_titles)}")
-        print(f"  Relevant: {' '.join(rel_titles)}")
+        print(f"  Recall@{limit}: {recall:.4f}")
+        print(f"  Retrieved: {', '.join(res_titles)}")
+        print(f"  Relevant: {', '.join(rel_titles)}")
         print()
 
 
