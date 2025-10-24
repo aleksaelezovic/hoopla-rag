@@ -36,6 +36,14 @@ def main():
         "--limit", help="Search results limit", type=int, default=5
     )
 
+    question_parser = subparsers.add_parser(
+        "question", help="Generate an answer to a question"
+    )
+    _ = question_parser.add_argument("question", type=str, help="Question")
+    _ = question_parser.add_argument(
+        "--limit", help="Search results limit", type=int, default=5
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -126,6 +134,39 @@ def main():
 
             print("LLM Answer:")
             print(summary)
+        case "question":
+            api_key = os.environ.get("GEMINI_API_KEY")
+            client = genai.Client(api_key=api_key)
+            question = args.question
+            limit = args.limit
+            res = HybridSearch(load_movies()).rrf_search(question, 60, limit)
+            prompt = f"""Answer the user's question based on the provided movies that are available on Hoopla.
+
+            This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+            Question: {question}
+
+            Documents:
+            {json.dumps(res)}
+
+            Instructions:
+            - Answer questions directly and concisely
+            - Be casual and conversational
+            - Don't be cringe or hype-y
+            - Talk like a normal person would in a chat conversation
+
+            Answer:"""
+            answer = client.models.generate_content(
+                model="gemini-2.0-flash-001", contents=prompt
+            ).text
+
+            print("Search Results:")
+            for doc in res:
+                print(f"- {doc.get('title', '<error unknown title>')}")
+            print()
+
+            print("Answer:")
+            print(answer)
         case _:
             parser.print_help()
 
