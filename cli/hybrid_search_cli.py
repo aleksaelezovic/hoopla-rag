@@ -79,6 +79,10 @@ def main() -> None:
 
             res = HybridSearch(load_movies()).rrf_search(args.query, args.k, args.limit)
             if args.rerank_method:
+                print("Results before reranking:")
+                for i, r in enumerate(res, 1):
+                    print(f"{i}. {r['title']}")
+                print()
                 res = rerank(args.query, res, args.rerank_method, args.limit // 5)
 
             for i, r in enumerate(res, 1):
