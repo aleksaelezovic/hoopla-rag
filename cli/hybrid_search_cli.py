@@ -1,7 +1,13 @@
 import argparse
 
 from lib.search_utils import load_movies
-from lib.hybrid_search import HybridSearch, enhance_query, normalize_scores, rerank
+from lib.hybrid_search import (
+    HybridSearch,
+    enhance_query,
+    evaluate_results,
+    normalize_scores,
+    rerank,
+)
 
 
 def main() -> None:
@@ -43,6 +49,11 @@ def main() -> None:
         type=str,
         choices=["individual", "batch", "cross_encoder"],
         help="Query reranking method",
+    )
+    rrf_search_parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Evaluate query reranking method",
     )
 
     args = parser.parse_args()
@@ -98,6 +109,13 @@ def main() -> None:
                     f"   BM25 Rank: {r['score_bm25']}, Semantic Rank: {r['score_semantic']}"
                 )
                 print(f"   {r['description'][:100]}...")
+            print()
+            if args.evaluate:
+                print("Evaluating query results using LLM...")
+                print(f'Query: "{args.query}"')
+                res = evaluate_results(args.query, res)
+                for i, r in enumerate(res, 1):
+                    print(f"{i}. {r['title']}: {r['score_eval']}/3")
         case _:
             parser.print_help()
 

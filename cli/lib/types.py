@@ -19,6 +19,7 @@ class SearchResult(TypedDict):
 
 
 class HybridSearchResult(TypedDict):
+    score_eval: int
     score_rerank: float
     score_hybrid: float
     score_semantic: float

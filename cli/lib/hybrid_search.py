@@ -46,6 +46,7 @@ class HybridSearch:
                 "score_bm25": ks_scores[i],
                 "score_semantic": 0.0,
                 "score_rerank": 0,
+                "score_eval": -1,
             }
         for i, r in enumerate(ss_res):
             if r["id"] not in res:
@@ -56,6 +57,7 @@ class HybridSearch:
                     "score_bm25": 0.0,
                     "score_semantic": ss_scores[i],
                     "score_rerank": 0,
+                    "score_eval": -1,
                 }
             else:
                 res[r["id"]]["score_semantic"] = ss_scores[i]
@@ -81,6 +83,7 @@ class HybridSearch:
                 "score_bm25": i,
                 "score_semantic": 0,
                 "score_rerank": 0,
+                "score_eval": -1,
             }
         for i, r in enumerate(ss_res, 1):
             if r["id"] not in res:
@@ -91,6 +94,7 @@ class HybridSearch:
                     "score_bm25": 0,
                     "score_semantic": i,
                     "score_rerank": 0,
+                    "score_eval": -1,
                 }
             else:
                 res[r["id"]]["score_semantic"] = i
@@ -236,3 +240,41 @@ def rerank(query, res: list[HybridSearchResult], method: str, limit: int):
         return sorted(res, key=lambda x: x["score_rerank"], reverse=True)[:limit]
     else:
         raise ValueError(f"Unknown reranking method: {method}")
+
+
+def evaluate_results(query: str, results: list[HybridSearchResult]) -> list[dict]:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    client = genai.Client(api_key=api_key)
+
+    formatted_results = map(
+        lambda doc: f"{doc.get('title', '')} - {doc.get('description', '')}", results
+    )
+
+    prompt = f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+    Query: "{query}"
+
+    Results:
+    {chr(10).join(formatted_results)}
+
+    Scale:
+    - 3: Highly relevant
+    - 2: Relevant
+    - 1: Marginally relevant
+    - 0: Not relevant
+
+    Do NOT give any numbers out than 0, 1, 2, or 3.
+
+    Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else.
+    Do not use markdown. Do not add a trailing comma into array.
+    For example:
+
+    [2, 0, 3, 2, 0, 1]"""
+
+    scores_str = client.models.generate_content(
+        model="gemini-2.0-flash-001", contents=prompt
+    ).text
+    scores: list[int] = json.loads(scores_str)
+    for doc, score in zip(results, scores):
+        doc["score_eval"] = score
+    return results
