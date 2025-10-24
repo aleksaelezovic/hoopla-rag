@@ -13,5 +13,15 @@ class Movie(TypedDict):
 
 class SearchResult(TypedDict):
     score: float
+    id: int
+    title: str
+    description: str
+
+
+class HybridSearchResult(TypedDict):
+    score_hybrid: float
+    score_semantic: float
+    score_bm25: float
+    id: int
     title: str
     description: str

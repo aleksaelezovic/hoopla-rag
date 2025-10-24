@@ -62,6 +62,7 @@ class SemanticSearch:
                     "score": x[0],
                     "title": x[1]["title"],
                     "description": x[1]["description"],
+                    "id": x[1]["id"],
                 },
                 sorted_results[:limit],
             )
@@ -145,6 +146,7 @@ class ChunkedSemanticSearch(SemanticSearch):
                     "score": x[1],
                     "title": self.documents[x[0]]["title"],
                     "description": self.documents[x[0]]["description"][:100],
+                    "id": self.documents[x[0]]["id"],
                 },
                 results[:limit],
             )

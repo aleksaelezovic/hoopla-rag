@@ -5,6 +5,7 @@ from transformers import InfNanRemoveLogitsProcessor
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
+from .types import HybridSearchResult
 
 
 class HybridSearch:
@@ -23,13 +24,47 @@ class HybridSearch:
         return self.idx.bm25_search(query, limit)
 
     def weighted_search(self, query, alpha, limit=5):
-        raise NotImplementedError("Weighted hybrid search is not implemented yet.")
+        ks_res = self._bm25_search(query, limit * 500)
+        ss_res = self.semantic_search.search_chunks(query, limit * 500)
+        ks_scores = normalize_scores([score for _, score in ks_res])
+        ss_scores = normalize_scores([res["score"] for res in ss_res])
+
+        res: dict[int, HybridSearchResult] = {}
+        for i, r in enumerate(ks_res):
+            doc, score = r
+            res[doc["id"]] = {
+                "id": doc["id"],
+                "title": doc["title"],
+                "description": doc["description"],
+                "score_bm25": ks_scores[i],
+                "score_semantic": 0.0,
+            }
+        for i, r in enumerate(ss_res):
+            if r["id"] not in res:
+                res[r["id"]] = {
+                    "id": r["id"],
+                    "title": r["title"],
+                    "description": r["description"],
+                    "score_bm25": 0.0,
+                    "score_semantic": ss_scores[i],
+                }
+            else:
+                res[r["id"]]["score_semantic"] = ss_scores[i]
+        for doc_id in res:
+            res[doc_id]["score_hybrid"] = (
+                alpha * res[doc_id]["score_bm25"]
+                + (1 - alpha) * res[doc_id]["score_semantic"]
+            )
+        sorted_res = sorted(res.values(), key=lambda x: x["score_hybrid"], reverse=True)
+        return sorted_res[:limit]
 
     def rrf_search(self, query, k, limit=10):
         raise NotImplementedError("RRF hybrid search is not implemented yet.")
 
 
-def normalize_scores(scores):
+def normalize_scores(scores: list[float]) -> list[float]:
+    if len(scores) == 0:
+        return []
     s_min = float("inf")
     s_max = float("-inf")
     for score in scores:

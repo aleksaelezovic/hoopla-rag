@@ -1,6 +1,7 @@
 import argparse
 
-from lib.hybrid_search import normalize_scores
+from lib.search_utils import load_movies
+from lib.hybrid_search import HybridSearch, normalize_scores
 
 
 def main() -> None:
@@ -10,6 +11,17 @@ def main() -> None:
     normalize_parser = subparsers.add_parser("normalize", help="Normalize scores")
     normalize_parser.add_argument(
         "scores", help="Scores to normalize", type=float, nargs="+"
+    )
+
+    weighted_search_parser = subparsers.add_parser(
+        "weighted-search", help="Perform weighted search"
+    )
+    weighted_search_parser.add_argument("query", help="Query string", type=str)
+    weighted_search_parser.add_argument(
+        "--alpha", help="Alpha constant", type=float, default=0.5
+    )
+    weighted_search_parser.add_argument(
+        "--limit", help="Search results limit", type=int, default=5
     )
 
     args = parser.parse_args()
@@ -22,6 +34,17 @@ def main() -> None:
             normalized_scores = normalize_scores(args.scores)
             for score in normalized_scores:
                 print(f"* {score:.4f}")
+        case "weighted-search":
+            res = HybridSearch(load_movies()).weighted_search(
+                args.query, args.alpha, args.limit
+            )
+            for i, r in enumerate(res, 1):
+                print(f"{i}. {r['title']}")
+                print(f"   Hybrid Score: {r['score_hybrid']:.3f}")
+                print(
+                    f"   BM25: {r['score_bm25']:.3f}, Semantic: {r['score_semantic']:.3f}"
+                )
+                print(f"   {r['description'][:100]}...")
         case _:
             parser.print_help()
 
