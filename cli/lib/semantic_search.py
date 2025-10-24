@@ -113,7 +113,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         ):
             self.chunk_embeddings = np.load(self.chunk_embeddings_path)
             with open(self.chunk_metadata_path, "r") as f:
-                self.chunk_metadata = json.load(f)
+                self.chunk_metadata = json.load(f)["chunks"]
                 return self.chunk_embeddings
         return self.build_chunk_embeddings(documents)
 
@@ -128,8 +128,8 @@ class ChunkedSemanticSearch(SemanticSearch):
             chunk_scores.append(
                 {
                     "score": cosine_similarity(query_embedding, chunk_embedding),
-                    "movie_idx": self.chunk_metadata["chunks"][i]["movie_idx"],
-                    "chunk_idx": self.chunk_metadata["chunks"][i]["chunk_idx"],
+                    "movie_idx": self.chunk_metadata[i]["movie_idx"],
+                    "chunk_idx": self.chunk_metadata[i]["chunk_idx"],
                 }
             )
         movie_scores: dict[int, int] = {}
