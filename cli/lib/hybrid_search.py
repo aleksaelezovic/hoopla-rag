@@ -1,3 +1,4 @@
+import time
 import os
 from dotenv import load_dotenv
 from google import genai
@@ -42,6 +43,7 @@ class HybridSearch:
                 "description": doc["description"],
                 "score_bm25": ks_scores[i],
                 "score_semantic": 0.0,
+                "score_rerank": 0,
             }
         for i, r in enumerate(ss_res):
             if r["id"] not in res:
@@ -51,6 +53,7 @@ class HybridSearch:
                     "description": r["description"],
                     "score_bm25": 0.0,
                     "score_semantic": ss_scores[i],
+                    "score_rerank": 0,
                 }
             else:
                 res[r["id"]]["score_semantic"] = ss_scores[i]
@@ -75,6 +78,7 @@ class HybridSearch:
                 "description": doc["description"],
                 "score_bm25": i,
                 "score_semantic": 0,
+                "score_rerank": 0,
             }
         for i, r in enumerate(ss_res, 1):
             if r["id"] not in res:
@@ -84,6 +88,7 @@ class HybridSearch:
                     "description": r["description"],
                     "score_bm25": 0,
                     "score_semantic": i,
+                    "score_rerank": 0,
                 }
             else:
                 res[r["id"]]["score_semantic"] = i
@@ -167,3 +172,35 @@ def enhance_query(query: str, method: str) -> str:
     return client.models.generate_content(
         model="gemini-2.0-flash-001", contents=prompt
     ).text
+
+
+def rerank(query, res: list[HybridSearchResult], method: str, limit: int):
+    api_key = os.environ.get("GEMINI_API_KEY")
+    client = genai.Client(api_key=api_key)
+
+    for doc in res:
+        if method == "individual":
+            prompt = f"""Rate how well this movie matches the search query.
+
+            Query: "{query}"
+            Movie: {doc.get("title", "")} - {doc.get("document", "")}
+
+            Consider:
+            - Direct relevance to query
+            - User intent (what they're looking for)
+            - Content appropriateness
+
+            Rate 0-10 (10 = perfect match).
+            Give me ONLY the number in your response, no other text or explanation.
+
+            Score:"""
+        else:
+            raise ValueError(f"Unknown reranking method: {method}")
+        score_str = client.models.generate_content(
+            model="gemini-2.0-flash-001", contents=prompt
+        ).text
+        score = float(score_str)
+        doc["score_rerank"] = score
+        time.sleep(3)
+    res.sort(key=lambda x: x["score_rerank"], reverse=True)
+    return res[:limit]

@@ -1,7 +1,7 @@
 import argparse
 
 from lib.search_utils import load_movies
-from lib.hybrid_search import HybridSearch, enhance_query, normalize_scores
+from lib.hybrid_search import HybridSearch, enhance_query, normalize_scores, rerank
 
 
 def main() -> None:
@@ -38,6 +38,12 @@ def main() -> None:
         choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
     )
+    rrf_search_parser.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual"],
+        help="Query reranking method",
+    )
 
     args = parser.parse_args()
 
@@ -68,9 +74,17 @@ def main() -> None:
                 )
                 args.query = enhanced_query
 
+            if args.rerank_method:
+                args.limit *= 5
+
             res = HybridSearch(load_movies()).rrf_search(args.query, args.k, args.limit)
+            if args.rerank_method:
+                res = rerank(args.query, res, args.rerank_method, args.limit // 5)
+
             for i, r in enumerate(res, 1):
                 print(f"{i}. {r['title']}")
+                if args.rerank_method:
+                    print(f"   Rerank Score: {r['score_rerank']:.3f}/10")
                 print(f"   RRF Score: {r['score_hybrid']:.3f}")
                 print(
                     f"   BM25 Rank: {r['score_bm25']}, Semantic Rank: {r['score_semantic']}"
