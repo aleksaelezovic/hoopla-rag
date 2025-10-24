@@ -116,17 +116,39 @@ def normalize_scores(scores: list[float]) -> list[float]:
     return [(score - s_min) / (s_max - s_min) for score in scores]
 
 
-def enhance_query_spell(query: str) -> str:
+def enhance_query(query: str, method: str) -> str:
     api_key = os.environ.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
-    prompt = f"""Fix any spelling errors in this movie search query.
+    if method == "spell":
+        prompt = f"""Fix any spelling errors in this movie search query.
 
-    Only correct obvious typos. Don't change correctly spelled words.
+        Only correct obvious typos. Don't change correctly spelled words.
 
-    Query: "{query}"
+        Query: "{query}"
 
-    If no errors, return the original query.
-    Corrected:"""
+        If no errors, return the original query.
+        Corrected:"""
+    elif method == "rewrite":
+        prompt = f"""Rewrite this movie search query to be more specific and searchable.
+
+        Original: "{query}"
+
+        Consider:
+        - Common movie knowledge (famous actors, popular films)
+        - Genre conventions (horror = scary, animation = cartoon)
+        - Keep it concise (under 10 words)
+        - It should be a google style search query that's very specific
+        - Don't use boolean logic
+
+        Examples:
+
+        - "that bear movie where leo gets attacked" -> "The Revenant Leonardo DiCaprio bear attack"
+        - "movie about bear in london with marmalade" -> "Paddington London marmalade"
+        - "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
+
+        Rewritten query:"""
+    else:
+        raise ValueError(f"Unknown enhancement method: {method}")
     return client.models.generate_content(
         model="gemini-2.0-flash-001", contents=prompt
     ).text

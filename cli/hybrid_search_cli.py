@@ -1,7 +1,7 @@
 import argparse
 
 from lib.search_utils import load_movies
-from lib.hybrid_search import HybridSearch, enhance_query_spell, normalize_scores
+from lib.hybrid_search import HybridSearch, enhance_query, normalize_scores
 
 
 def main() -> None:
@@ -35,7 +35,7 @@ def main() -> None:
     rrf_search_parser.add_argument(
         "--enhance",
         type=str,
-        choices=["spell"],
+        choices=["spell", "rewrite"],
         help="Query enhancement method",
     )
 
@@ -61,8 +61,8 @@ def main() -> None:
                 )
                 print(f"   {r['description'][:100]}...")
         case "rrf-search":
-            if args.enhance == "spell":
-                enhanced_query = enhance_query_spell(args.query)
+            if args.enhance:
+                enhanced_query = enhance_query(args.query, args.enhance)
                 print(
                     f"Enhanced query ({args.enhance}): '{args.query}' -> '{enhanced_query}'\n"
                 )
