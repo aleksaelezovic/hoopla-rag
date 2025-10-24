@@ -7,7 +7,7 @@ from .search_utils import load_movies
 
 
 class MultimodalSearch:
-    def __init__(self, model_name="clip-ViT-B-32", documents=list[Movie]):
+    def __init__(self, model_name="clip-ViT-B-32", documents: list[Movie] = []):
         self.model = SentenceTransformer(model_name)
         self.documents = documents
         self.texts = [f"{doc['title']}: {doc['description']}" for doc in documents]
