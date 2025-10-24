@@ -59,7 +59,44 @@ class HybridSearch:
         return sorted_res[:limit]
 
     def rrf_search(self, query, k, limit=10):
-        raise NotImplementedError("RRF hybrid search is not implemented yet.")
+        ks_res = self._bm25_search(query, limit * 500)
+        ss_res = self.semantic_search.search_chunks(query, limit * 500)
+
+        res: dict[int, HybridSearchResult] = {}
+        for i, r in enumerate(ks_res, 1):
+            doc, score = r
+            res[doc["id"]] = {
+                "id": doc["id"],
+                "title": doc["title"],
+                "description": doc["description"],
+                "score_bm25": i,
+                "score_semantic": 0,
+            }
+        for i, r in enumerate(ss_res, 1):
+            if r["id"] not in res:
+                res[r["id"]] = {
+                    "id": r["id"],
+                    "title": r["title"],
+                    "description": r["description"],
+                    "score_bm25": 0,
+                    "score_semantic": i,
+                }
+            else:
+                res[r["id"]]["score_semantic"] = i
+        for doc_id in res:
+            rrf_bm25 = (
+                (1 / (res[doc_id]["score_bm25"] + k))
+                if res[doc_id]["score_bm25"] != 0
+                else 0
+            )
+            rrf_sem = (
+                (1 / (res[doc_id]["score_semantic"] + k))
+                if res[doc_id]["score_semantic"] != 0
+                else 0
+            )
+            res[doc_id]["score_hybrid"] = rrf_bm25 + rrf_sem
+        sorted_res = sorted(res.values(), key=lambda x: x["score_hybrid"], reverse=True)
+        return sorted_res[:limit]
 
 
 def normalize_scores(scores: list[float]) -> list[float]:
