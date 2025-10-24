@@ -1,8 +1,8 @@
 import time
 import os
+import json
 from dotenv import load_dotenv
 from google import genai
-from google.genai.types import json
 from numpy import s_
 from transformers import InfNanRemoveLogitsProcessor
 from sentence_transformers import CrossEncoder
@@ -12,7 +12,7 @@ from .semantic_search import ChunkedSemanticSearch
 from .types import HybridSearchResult
 
 
-load_dotenv()
+_ = load_dotenv()
 
 
 class HybridSearch:
