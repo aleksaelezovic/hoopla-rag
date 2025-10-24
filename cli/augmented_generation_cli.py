@@ -28,6 +28,14 @@ def main():
         "--limit", help="Search results limit", type=int, default=5
     )
 
+    citations_parser = subparsers.add_parser(
+        "citations", help="Generate a summary with citations for a search"
+    )
+    _ = citations_parser.add_argument("query", type=str, help="Search Query")
+    _ = citations_parser.add_argument(
+        "--limit", help="Search results limit", type=int, default=5
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -81,6 +89,42 @@ def main():
             print()
 
             print("LLM Summary:")
+            print(summary)
+        case "citations":
+            api_key = os.environ.get("GEMINI_API_KEY")
+            client = genai.Client(api_key=api_key)
+            query = args.query
+            limit = args.limit
+            res = HybridSearch(load_movies()).rrf_search(query, 60, limit)
+            prompt = f"""Answer the question or provide information based on the provided documents.
+
+            This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+            If not enough information is available to give a good answer, say so but give as good of an answer as you can while citing the sources you have.
+
+            Query: {query}
+
+            Documents:
+            {json.dumps(res)}
+
+            Instructions:
+            - Provide a comprehensive answer that addresses the query
+            - Cite sources using [1], [2], etc. format when referencing information
+            - If sources disagree, mention the different viewpoints
+            - If the answer isn't in the documents, say "I don't have enough information"
+            - Be direct and informative
+
+            Answer:"""
+            summary = client.models.generate_content(
+                model="gemini-2.0-flash-001", contents=prompt
+            ).text
+
+            print("Search Results:")
+            for doc in res:
+                print(f"- {doc.get('title', '<error unknown title>')}")
+            print()
+
+            print("LLM Answer:")
             print(summary)
         case _:
             parser.print_help()
