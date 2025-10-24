@@ -36,3 +36,10 @@ class GoldenDataset(TypedDict):
 class GoldenDatasetTestCase(TypedDict):
     query: str
     relevant_docs: list[str]
+
+
+class MultimodalSearchResult(TypedDict):
+    score: float
+    id: int
+    title: str
+    description: str
