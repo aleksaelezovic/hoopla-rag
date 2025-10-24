@@ -189,7 +189,7 @@ def rerank(query, res: list[HybridSearchResult], method: str, limit: int):
         {doc_list_str}
 
         Return ONLY the IDs in order of relevance (best match first). Return a valid JSON list, nothing else.
-        Do not use markdown.
+        Do not use markdown. Do not add a trailing comma into array.
         For example:
 
         [75, 12, 34, 2, 1]
