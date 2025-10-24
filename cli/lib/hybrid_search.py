@@ -2,6 +2,7 @@ import time
 import os
 from dotenv import load_dotenv
 from google import genai
+from google.genai.types import json
 from numpy import s_
 from transformers import InfNanRemoveLogitsProcessor
 
@@ -177,6 +178,28 @@ def enhance_query(query: str, method: str) -> str:
 def rerank(query, res: list[HybridSearchResult], method: str, limit: int):
     api_key = os.environ.get("GEMINI_API_KEY")
     client = genai.Client(api_key=api_key)
+
+    if method == "batch":
+        doc_list_str = json.dumps(res)
+        prompt = f"""Rank these movies by relevance to the search query.
+
+        Query: "{query}"
+
+        Movies:
+        {doc_list_str}
+
+        Return ONLY the IDs in order of relevance (best match first). Return a valid JSON list, nothing else.
+        Do not use markdown.
+        For example:
+
+        [75, 12, 34, 2, 1]
+        """
+        ids_str = client.models.generate_content(
+            model="gemini-2.0-flash-001", contents=prompt
+        ).text
+        ids: list[int] = json.loads(ids_str)
+        res.sort(key=lambda x: ids.index(x["id"]))
+        return res[:limit]
 
     for doc in res:
         if method == "individual":
