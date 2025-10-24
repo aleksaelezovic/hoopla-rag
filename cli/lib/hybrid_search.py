@@ -5,6 +5,7 @@ from google import genai
 from google.genai.types import json
 from numpy import s_
 from transformers import InfNanRemoveLogitsProcessor
+from sentence_transformers import CrossEncoder
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
@@ -200,9 +201,8 @@ def rerank(query, res: list[HybridSearchResult], method: str, limit: int):
         ids: list[int] = json.loads(ids_str)
         res.sort(key=lambda x: ids.index(x["id"]))
         return res[:limit]
-
-    for doc in res:
-        if method == "individual":
+    elif method == "individual":
+        for doc in res:
             prompt = f"""Rate how well this movie matches the search query.
 
             Query: "{query}"
@@ -217,13 +217,22 @@ def rerank(query, res: list[HybridSearchResult], method: str, limit: int):
             Give me ONLY the number in your response, no other text or explanation.
 
             Score:"""
-        else:
-            raise ValueError(f"Unknown reranking method: {method}")
-        score_str = client.models.generate_content(
-            model="gemini-2.0-flash-001", contents=prompt
-        ).text
-        score = float(score_str)
-        doc["score_rerank"] = score
-        time.sleep(3)
-    res.sort(key=lambda x: x["score_rerank"], reverse=True)
-    return res[:limit]
+            score_str = client.models.generate_content(
+                model="gemini-2.0-flash-001", contents=prompt
+            ).text
+            score = float(score_str)
+            doc["score_rerank"] = score
+            time.sleep(3)
+        res.sort(key=lambda x: x["score_rerank"], reverse=True)
+        return res[:limit]
+    elif method == "cross_encoder":
+        pairs: list[list[str]] = []
+        for doc in res:
+            pairs.append([query, f"{doc.get('title', '')} - {doc.get('document', '')}"])
+        cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+        scores = cross_encoder.predict(pairs)
+        for doc, score in zip(res, scores):
+            doc["score_rerank"] = score
+        return sorted(res, key=lambda x: x["score_rerank"], reverse=True)[:limit]
+    else:
+        raise ValueError(f"Unknown reranking method: {method}")

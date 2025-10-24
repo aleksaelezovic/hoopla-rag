@@ -41,7 +41,7 @@ def main() -> None:
     rrf_search_parser.add_argument(
         "--rerank-method",
         type=str,
-        choices=["individual", "batch"],
+        choices=["individual", "batch", "cross_encoder"],
         help="Query reranking method",
     )
 
@@ -87,6 +87,8 @@ def main() -> None:
                     print(f"   Rerank Score: {r['score_rerank']:.3f}/10")
                 if args.rerank_method == "batch":
                     print(f"   Rerank Score: {i}")
+                if args.rerank_method == "cross_encoder":
+                    print(f"   Cross Encoder Score: {r['score_rerank']:.3f}")
                 print(f"   RRF Score: {r['score_hybrid']:.3f}")
                 print(
                     f"   BM25 Rank: {r['score_bm25']}, Semantic Rank: {r['score_semantic']}"
